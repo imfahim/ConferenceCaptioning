@@ -58,7 +58,7 @@ if (app.Environment.IsDevelopment())
 		options.DocExpansion(DocExpansion.List);
 	});
 }
-
+app.UseStaticFiles();
 app.UseAuthorization();
 
 app.MapControllers();

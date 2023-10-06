@@ -1,7 +1,9 @@
-﻿namespace Web.Api.Service
+﻿using Web.Api.Model.Request;
+
+namespace Web.Api.Service
 {
 	public interface IStreamService
 	{
-		Task<string> CreateStream(string streamName, string? bannerColor);
+		Task<string> CreateStream(RequestModel postData);
 	}
 }

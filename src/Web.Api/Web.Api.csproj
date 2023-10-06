@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Folder Include="Exceptions\" />
+    <Folder Include="wwwroot\" />
     <Folder Include="Organizer\" />
   </ItemGroup>
 
