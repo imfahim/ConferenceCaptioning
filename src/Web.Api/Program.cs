@@ -4,6 +4,7 @@ using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using Web.Api.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +39,9 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Add services to the container.
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IStreamService, StreamService>();
+//builder.Services.AddSingleton<IDataRepository, DataRepository>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

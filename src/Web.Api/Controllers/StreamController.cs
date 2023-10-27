@@ -16,6 +16,8 @@ namespace Web.Api.Controllers
 	public class StreamController : ControllerBase
 	{
 		private readonly IStreamService _streamService;
+		private string connectionString = "YourConnectionString"; // Replace with your actual connection string
+		//private DataRepository repository = new DataRepository(connectionString);
 
 		public StreamController(IStreamService streamService)
 		{
@@ -29,6 +31,8 @@ namespace Web.Api.Controllers
 			try
 			{
 				var path = await _streamService.CreateStream(postData);
+				//repository.InsertData("John Doe", 30); // Example data
+
 				return Ok(new ResponseModel() { FilePath = path });
 			}
 			catch (DuplicateNameException ex)
@@ -40,5 +44,26 @@ namespace Web.Api.Controllers
 				return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
 			}
 		}
+
+		//[HttpGet]
+		//[ProducesResponseType(typeof(ResponseModel), (int)HttpStatusCode.OK)]
+		//public async Task<IActionResult> GetAllCreatedStream()
+		//{
+		//	try
+		//	{
+		//		var path = await _streamService.CreateStream(postData);
+		//		//repository.InsertData("John Doe", 30); // Example data
+
+		//		return Ok(new ResponseModel() { FilePath = path });
+		//	}
+		//	catch (DuplicateNameException ex)
+		//	{
+		//		return BadRequest(ex.Message);
+		//	}
+		//	catch (Exception ex)
+		//	{
+		//		return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+		//	}
+		//}
 	}
 }
