@@ -1,14 +1,19 @@
 ﻿using System.Data;
 using Web.Api.Model.Request;
+using Web.Api.Repository;
 
 namespace Web.Api.Service
 {
 	public class StreamService : IStreamService
 	{
 		private readonly IWebHostEnvironment _webHostEnvironment;
-		public StreamService(IWebHostEnvironment webHostEnvironment)
+		private readonly IHttpContextAccessor _httpContextAccessor;
+		//private readonly IDataRepository _dataRepository;
+		public StreamService(IHttpContextAccessor httpContextAccessor, IWebHostEnvironment webHostEnvironment/*, IDataRepository dataRepository*/)
 		{
+			_httpContextAccessor = httpContextAccessor;
 			_webHostEnvironment = webHostEnvironment;
+			//_dataRepository = dataRepository;
 		}
 		public async Task<string> CreateStream(RequestModel postData)
 		{
@@ -16,11 +21,22 @@ namespace Web.Api.Service
 			// Ensure the Organizer folder exists
 			string organizerFolderPath = Path.Combine(_webHostEnvironment.ContentRootPath, $"wwwroot/{postData.Name}");
 
+			var request = _httpContextAccessor.HttpContext.Request;
+
+			var protocol = request.Scheme; // "http" or "https"
+			var host = request.Host.Value;
+			var pathBase = request.PathBase;
+
+			// If you want to include the base path, use:
+			// var fullPath = $"{protocol}://{host}{pathBase}";
+
+			var fullPath = $"{protocol}://{host}/{postData.Name}/index.html";
+
 			// Check if the HTML file already exists
 			string filePath = Path.Combine(organizerFolderPath, $"index.html");
 			if (Directory.Exists(organizerFolderPath))
 			{
-				throw new DuplicateNameException($"File for {organizerFolderPath} exists!");
+				throw new DuplicateNameException($"File for {fullPath} exists!");
 			}
 			Directory.CreateDirectory(organizerFolderPath);
 			// Read the content of the template HTML file
@@ -36,14 +52,28 @@ namespace Web.Api.Service
 				htmlContent = htmlContent.Replace("{{BannerColor}}", postData.BannerColor);
 			}
 
+			// Read the content of script.js from the template
+			string scriptFilePath = Path.Combine(_webHostEnvironment.ContentRootPath, "template", "script.js");
+			string scriptContent = await File.ReadAllTextAsync(scriptFilePath);
+
+			// Replace "WeTech" with postData.Name in script.js
+			scriptContent = scriptContent.Replace("WeTech", postData.Name);
+			scriptContent = scriptContent.Replace("wetech", postData.Name);
+
 			CopyFilesRecursively(Path.Combine(_webHostEnvironment.ContentRootPath, "template"),
 				organizerFolderPath);
 
 			// Save the modified HTML content to the new file
 			await File.WriteAllTextAsync(filePath, htmlContent);
 
+			// Save the modified script.js to the organizer folder
+			string scriptPath = Path.Combine(organizerFolderPath, "script.js");
+			await File.WriteAllTextAsync(scriptPath, scriptContent);
+
 			// Return the path to the newly created HTML file
-			return filePath;
+			//await _dataRepository.InsertNewlyCreatedStream(postData.Name);
+			
+			return fullPath;
 		}
 
 		private void CopyFilesRecursively(string sourcePath, string targetPath)

@@ -7,16 +7,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Organizer\**" />
+    <Content Remove="Organizer\**" />
+    <EmbeddedResource Remove="Organizer\**" />
+    <None Remove="Organizer\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.10" />
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="7.0.13" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="7.0.9" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Exceptions\" />
     <Folder Include="wwwroot\" />
-    <Folder Include="Organizer\" />
   </ItemGroup>
 
 </Project>
