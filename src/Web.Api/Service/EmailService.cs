@@ -20,7 +20,7 @@ namespace Web.Api.Service
 			emailHost = "smtp.gmail.com";
 			emailPort = 587;
 			emailUsername = "appcurrency06@gmail.com";
-			emailPassword = "xspxamhgoqyvadbf";
+			emailPassword = "SECRET";
 			useTls = true;
 		}
 
