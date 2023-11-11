@@ -1,10 +1,10 @@
 using Web.Api.Service;
-using Web.Api.Controllers;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Web.Api.Repository;
+using Web.Api.BackgroundJobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +41,14 @@ builder.Services.AddSwaggerGen(options =>
 // Add services to the container.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IStreamService, StreamService>();
+builder.Services.AddScoped<IDataRepository, DataRepository>();
+builder.Services.AddCronJob<AnalyticJob>(c =>
+{
+	c.TimeZoneInfo = TimeZoneInfo.Local;
+	c.CronExpression = @"*/1 * * * *"; // This is for local testing. will run after every 3 min
+	//c.CronExpression = @"0 0 * * *"; // Runs 12am every day
+
+});
 //builder.Services.AddSingleton<IDataRepository, DataRepository>();
 
 builder.Services.AddControllers();

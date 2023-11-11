@@ -45,6 +45,21 @@ namespace Web.Api.Controllers
 			}
 		}
 
+		[HttpPost("view-counter")]
+		[ProducesResponseType(typeof(ResponseModel), (int)HttpStatusCode.OK)]
+		public async Task<IActionResult> UserViewed([FromBody] string streamName)
+		{
+			try
+			{
+				await _streamService.AddViewerOnStream(streamName);
+				return Ok();
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+			}
+		}
+
 		//[HttpGet]
 		//[ProducesResponseType(typeof(ResponseModel), (int)HttpStatusCode.OK)]
 		//public async Task<IActionResult> GetAllCreatedStream()

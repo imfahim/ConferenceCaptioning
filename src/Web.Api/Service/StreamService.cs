@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using Web.Api.Model;
 using Web.Api.Model.Request;
 using Web.Api.Repository;
 
@@ -8,12 +9,12 @@ namespace Web.Api.Service
 	{
 		private readonly IWebHostEnvironment _webHostEnvironment;
 		private readonly IHttpContextAccessor _httpContextAccessor;
-		//private readonly IDataRepository _dataRepository;
-		public StreamService(IHttpContextAccessor httpContextAccessor, IWebHostEnvironment webHostEnvironment/*, IDataRepository dataRepository*/)
+		private readonly IDataRepository _dataRepository;
+		public StreamService(IHttpContextAccessor httpContextAccessor, IWebHostEnvironment webHostEnvironment, IDataRepository dataRepository)
 		{
 			_httpContextAccessor = httpContextAccessor;
 			_webHostEnvironment = webHostEnvironment;
-			//_dataRepository = dataRepository;
+			_dataRepository = dataRepository;
 		}
 		public async Task<string> CreateStream(RequestModel postData)
 		{
@@ -28,9 +29,10 @@ namespace Web.Api.Service
 			var pathBase = request.PathBase;
 
 			// If you want to include the base path, use:
-			// var fullPath = $"{protocol}://{host}{pathBase}";
+			var domain = $"{protocol}://{host}{pathBase}";
+			//var domain = $"https://10.62.40.174:45455";
 
-			var fullPath = $"{protocol}://{host}/{postData.Name}/index.html";
+			var fullPath = $"{domain}/{postData.Name}/index.html";
 
 			// Check if the HTML file already exists
 			string filePath = Path.Combine(organizerFolderPath, $"index.html");
@@ -59,6 +61,7 @@ namespace Web.Api.Service
 			// Replace "WeTech" with postData.Name in script.js
 			scriptContent = scriptContent.Replace("WeTech", postData.Name);
 			scriptContent = scriptContent.Replace("wetech", postData.Name);
+			scriptContent = scriptContent.Replace("serverDomain", domain);
 
 			CopyFilesRecursively(Path.Combine(_webHostEnvironment.ContentRootPath, "template"),
 				organizerFolderPath);
@@ -71,11 +74,25 @@ namespace Web.Api.Service
 			await File.WriteAllTextAsync(scriptPath, scriptContent);
 
 			// Return the path to the newly created HTML file
-			//await _dataRepository.InsertNewlyCreatedStream(postData.Name);
+			await _dataRepository.InsertNewlyCreatedStream(postData.Name);
 			
 			return fullPath;
 		}
 
+		public async Task AddViewerOnStream(string streamName)
+		{
+			await _dataRepository.AddViewerOnStream(streamName);
+		}
+
+		public async Task SendAnalytics()
+		{
+			var createdStream = await _dataRepository.GetLastDayCreatedStream();
+			var viewdStream = await _dataRepository.GetLastDayViewedStream();
+			var emailBody = CreateAnalyticsEmailBody(createdStream, viewdStream);
+			var emailService = new EmailService();
+			await emailService.SendEmailAsync("fahim@brainstation-23.com", $"Analytics On - {DateTime.Now.ToString("yyyy-MM-dd")}", emailBody);
+
+		}
 		private void CopyFilesRecursively(string sourcePath, string targetPath)
 		{
 			//Now Create all of the directories
@@ -90,5 +107,76 @@ namespace Web.Api.Service
 				File.Copy(newPath, newPath.Replace(sourcePath, targetPath), true);
 			}
 		}
+
+		public string CreateAnalyticsEmailBody(List<StreamCreationTracker> creationTrackers, List<StreamViewerTracker> viewerTrackers)
+		{
+			string emailBody = @"
+        <html>
+        <head>
+            <style>
+                table {
+                    border-collapse: collapse;
+                    width: 100%;
+                }
+                th, td {
+                    border: 1px solid #ccc;
+                    padding: 8px;
+                    text-align: left;
+                }
+                th {
+                    background-color: #f2f2f2;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Analytics Report</h1>
+            <h2>Stream Creation</h2>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Created On</th>
+                </tr>";
+
+			foreach (var creationTracker in creationTrackers)
+			{
+				emailBody += $@"
+            <tr>
+                <td>{creationTracker.Id}</td>
+                <td>{creationTracker.Name}</td>
+                <td>{creationTracker.CreatedOn}</td>
+            </tr>";
+			}
+
+			emailBody += @"
+            </table>
+            <h2>Stream Viewer</h2>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>View Count</th>
+                    <th>Name</th>
+                    <th>View Date</th>
+                </tr>";
+
+			foreach (var viewerTracker in viewerTrackers)
+			{
+				emailBody += $@"
+            <tr>
+                <td>{viewerTracker.Id}</td>
+                <td>{viewerTracker.ViewCount}</td>
+                <td>{viewerTracker.Name}</td>
+                <td>{viewerTracker.ViewDate}</td>
+            </tr>";
+			}
+
+			emailBody += @"
+            </table>
+        </body>
+        </html>";
+
+			return emailBody;
+		}
+
 	}
 }
