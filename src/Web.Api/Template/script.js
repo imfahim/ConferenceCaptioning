@@ -15,6 +15,8 @@ $(document).ready(function() {
   //$("#arabic").on("click", function() { translate("arabic"); });
   // Loads the initial quote - without pressing the button
   const unusedVariable = setInterval(recurringFunction, 1000);  
+  
+callUserViewedAPI("WeTech");
 });
 
 
@@ -138,4 +140,30 @@ function translate(language){
   french.className = "";
   document.getElementById(language).className = "active";
   // $("#live-caption").html(translations[language]);
+}
+
+  function callUserViewedAPI(streamName) {
+  const apiUrl = `serverDomain/api/v1/stream/view-counter`;
+  const requestData = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(streamName),
+  };
+
+  fetch(apiUrl, requestData)
+    .then((response) => {
+      if (response.ok) {
+        // Request was successful (HTTP 200 OK)
+        console.log('API call successful');
+      } else {
+        // Handle errors or non-200 responses here
+        console.error('API call failed');
+      }
+    })
+    .catch((error) => {
+      // Handle network or other errors here
+      console.error('API call failed with an exception:', error);
+    });
 }

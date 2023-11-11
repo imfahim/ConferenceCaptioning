@@ -1,24 +1,30 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using Npgsql;
+using Web.Api.Model;
 using Web.Api.Repository;
 
 public class DataRepository : IDataRepository
 {
-	private readonly string _connectionString = "Data Source=InMemorySample;Mode=Memory;Cache=Shared";
+	private readonly string _connectionString = "Server=localhost;Port=5432;Database=FirstProto;Username=postgres;Password=1234;";
 
-	public DataRepository(string connectionString)
+	public DataRepository()
 	{
-		//_connectionString = connectionString;
-		var masterConnection = new SqliteConnection(_connectionString);
+		var masterConnection = new NpgsqlConnection(_connectionString);
 		masterConnection.Open();
 
 		var createCommand = masterConnection.CreateCommand();
 		createCommand.CommandText =
 		@"
-			CREATE TABLE [dbo].[StreamCreationTracker](
-				[Id] [int] IDENTITY(1,1) NOT NULL,
-				[StreamName] [nvarchar](100) NOT NULL,
-				[CreatedOn] [datetime] NOT NULL
-			) 
+			CREATE TABLE if not exists StreamViewerTracker(
+			Id SERIAL PRIMARY KEY, 
+			StreamName VARCHAR (200) NOT NULL, 
+			ViewCount int NOT NULL,
+			ViewDate TIMESTAMPTZ NOT NULL
+			);
+			CREATE TABLE if not exists StreamCreationTracker(
+			Id SERIAL PRIMARY KEY, 
+			StreamName VARCHAR (200) NOT NULL, 
+			CreatedOn TIMESTAMPTZ NOT NULL
+			)
             ";
 
 		createCommand.ExecuteNonQuery();
@@ -26,75 +32,141 @@ public class DataRepository : IDataRepository
 
 	}
 
-	//public void InsertData(string name, int age)
-	//{
-	//	using var connection = new SqlConnection(_connectionString);
-	//	connection.Open();
-
-	//	using (var command = new SqlCommand("INSERT INTO YourTable (Name, Age) VALUES (@Name, @Age)", connection))
-	//	{
-	//		command.Parameters.Add(new SqlParameter("@Name", SqlDbType.NVarChar) { Value = name });
-	//		command.Parameters.Add(new SqlParameter("@Age", SqlDbType.Int) { Value = age });
-
-	//		command.ExecuteNonQuery();
-	//	}
-	//}
-	public async Task GetAllCreatedStream()
+	public async Task<List<StreamCreationTracker>> GetLastDayCreatedStream()
 	{
 
-		using (var secondConnection = new SqliteConnection(_connectionString))
+		using (var secondConnection = new NpgsqlConnection(_connectionString))
 		{
 			secondConnection.Open();
-			var queryCommand = secondConnection.CreateCommand();
-			queryCommand.CommandText =
-			@"
-		                  SELECT [Id]
-					  ,[StreamName]
-					  ,[CreatedOn]
-				  FROM [dbo].[StreamCreationTracker]
-		              ";
-			var value = await queryCommand.ExecuteReaderAsync();
-			while (value.Read())
+			var dateString = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
+			var commandText =
+			@"SELECT * FROM StreamCreationTracker WHERE DATE(CreatedOn) = '" + dateString + "'";
+			var streamCreationTrackers = new List<StreamCreationTracker>();
+
+			await using (NpgsqlCommand cmd = new NpgsqlCommand(commandText, secondConnection))
 			{
-				string myreader = value.GetString(0);
+				cmd.Parameters.AddWithValue("date", DateTime.Now.AddDays(-1).Date);
+
+				await using (NpgsqlDataReader reader = await cmd.ExecuteReaderAsync())
+				{
+					while (await reader.ReadAsync())
+					{
+						StreamCreationTracker tracker = new StreamCreationTracker(reader);
+						streamCreationTrackers.Add(tracker);
+					}
+				}
 			}
-			Console.WriteLine(value);
+			secondConnection.Close();
+			return streamCreationTrackers;
+		}
+	}
 
-			//SQLiteDataReader sqlite_datareader;
-			//SQLiteCommand sqlite_cmd;
-			//sqlite_cmd = conn.CreateCommand();
-			//sqlite_cmd.CommandText = "SELECT * FROM SampleTable";
+	public async Task<List<StreamViewerTracker>> GetLastDayViewedStream()
+	{
 
-			//sqlite_datareader = sqlite_cmd.ExecuteReader();
-			//while (sqlite_datareader.Read())
-			//{
-			//	string myreader = sqlite_datareader.GetString(0);
-			//	Console.WriteLine(myreader);
-			//}
-			//conn.Close();
+		using (var secondConnection = new NpgsqlConnection(_connectionString))
+		{
+			secondConnection.Open();
+			var dateString = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
+			var commandText =
+			@"SELECT * FROM StreamViewerTracker WHERE DATE(CreatedOn) = '" + dateString + "'";
+			var streamViewerTracker = new List<StreamViewerTracker>();
+
+			await using (NpgsqlCommand cmd = new NpgsqlCommand(commandText, secondConnection))
+			{
+				cmd.Parameters.AddWithValue("date", DateTime.Now.AddDays(-1).Date);
+
+				await using (NpgsqlDataReader reader = await cmd.ExecuteReaderAsync())
+				{
+					while (await reader.ReadAsync())
+					{
+						StreamViewerTracker tracker = new StreamViewerTracker(reader);
+						streamViewerTracker.Add(tracker);
+					}
+				}
+			}
+			secondConnection.Close();
+			return streamViewerTracker;
 		}
 	}
 
 	public async Task InsertNewlyCreatedStream(string streamName)
 	{
-		
-
-		using (var connection = new SqliteConnection(_connectionString))
+		using (var secondConnection = new NpgsqlConnection(_connectionString))
 		{
-			connection.Open();
+			secondConnection.Open();
+			string commandText = $"INSERT INTO StreamCreationTracker (StreamName, CreatedOn) VALUES (@name, @date)";
+			await using var cmd = new NpgsqlCommand(commandText, secondConnection);
+			cmd.Parameters.AddWithValue("name", streamName);
+			cmd.Parameters.AddWithValue("date", DateTime.Now.Date);
 
-			var updateCommand = connection.CreateCommand();
-			updateCommand.CommandText =
-			$@"
-				INSERT INTO [dbo].[StreamCreationTracker]
-					   ([StreamName]
-					   ,[CreatedOn])
-				 VALUES
-					   ({streamName}
-					   ,{DateTime.UtcNow})
+			await cmd.ExecuteNonQueryAsync();
+			secondConnection.Close();
+		}		
+	}
 
-                ";
-			await updateCommand.ExecuteNonQueryAsync();
+	public async Task<StreamViewerTracker?> GetViewerOnStream(string streamName)
+	{
+		using (var secondConnection = new NpgsqlConnection(_connectionString))
+		{
+			secondConnection.Open();
+			var dateString = DateTime.Now.ToString("yyyy-MM-dd");
+
+			string commandText = $"SELECT * FROM StreamViewerTracker WHERE streamname = @name and DATE(viewdate) = '"+ dateString + "' limit 1";
+
+			await using (NpgsqlCommand cmd = new NpgsqlCommand(commandText, secondConnection))
+			{
+				cmd.Parameters.AddWithValue("name", streamName);
+				await using (NpgsqlDataReader reader = await cmd.ExecuteReaderAsync())
+				{
+					while (await reader.ReadAsync())
+					{
+						StreamViewerTracker viewTracker = new StreamViewerTracker(reader);
+						secondConnection.Close();
+						return viewTracker;
+					}
+				}
+					
+			}
+
+			secondConnection.Close();
+			return null;
+		}
+	}
+
+	public async Task AddViewerOnStream(string streamName)
+	{
+		var existingCount = await GetViewerOnStream(streamName);
+		if(existingCount == null)
+		{
+			using (var secondConnection = new NpgsqlConnection(_connectionString))
+			{
+				secondConnection.Open();
+				string commandText = $"INSERT INTO StreamViewerTracker (streamname, viewcount, viewdate) VALUES (@name, @count, @date)";
+				await using var cmd = new NpgsqlCommand(commandText, secondConnection);
+				cmd.Parameters.AddWithValue("name", streamName);
+				cmd.Parameters.AddWithValue("count", 1);
+				cmd.Parameters.AddWithValue("date", DateTime.Now);
+				await cmd.ExecuteNonQueryAsync();
+				secondConnection.Close();
+			}
+		}
+		else
+		{
+			using (var secondConnection = new NpgsqlConnection(_connectionString))
+			{
+				secondConnection.Open();
+				var commandText = $@"UPDATE StreamViewerTracker SET viewcount = @count WHERE id = @id";
+
+				await using (var cmd = new NpgsqlCommand(commandText, secondConnection))
+				{
+					cmd.Parameters.AddWithValue("id", existingCount.Id);
+					cmd.Parameters.AddWithValue("count", existingCount.ViewCount + 1);
+					await cmd.ExecuteNonQueryAsync();
+				}
+				secondConnection.Close();
+			}
+
 		}
 	}
 }
