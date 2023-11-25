@@ -45,8 +45,8 @@ builder.Services.AddScoped<IDataRepository, DataRepository>();
 builder.Services.AddCronJob<AnalyticJob>(c =>
 {
 	c.TimeZoneInfo = TimeZoneInfo.Local;
-	c.CronExpression = @"*/1 * * * *"; // This is for local testing. will run after every 3 min
-	//c.CronExpression = @"0 0 * * *"; // Runs 12am every day
+	//c.CronExpression = @"*/1 * * * *"; // This is for local testing. will run after every 3 min
+	c.CronExpression = @"0 0 * * *"; // Runs 12am every day
 
 });
 //builder.Services.AddSingleton<IDataRepository, DataRepository>();

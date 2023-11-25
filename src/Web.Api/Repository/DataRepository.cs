@@ -69,7 +69,7 @@ public class DataRepository : IDataRepository
 			secondConnection.Open();
 			var dateString = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
 			var commandText =
-			@"SELECT * FROM StreamViewerTracker WHERE DATE(CreatedOn) = '" + dateString + "'";
+			@"SELECT * FROM StreamViewerTracker WHERE DATE(viewdate) = '" + dateString + "'";
 			var streamViewerTracker = new List<StreamViewerTracker>();
 
 			await using (NpgsqlCommand cmd = new NpgsqlCommand(commandText, secondConnection))

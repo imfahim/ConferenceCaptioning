@@ -90,7 +90,7 @@ namespace Web.Api.Service
 			var viewdStream = await _dataRepository.GetLastDayViewedStream();
 			var emailBody = CreateAnalyticsEmailBody(createdStream, viewdStream);
 			var emailService = new EmailService();
-			await emailService.SendEmailAsync("fahim@brainstation-23.com", $"Analytics On - {DateTime.Now.ToString("yyyy-MM-dd")}", emailBody);
+			await emailService.SendEmailAsync("khan7z@uwindsor.ca", $"Analytics On - {DateTime.Now.ToString("yyyy-MM-dd")}", emailBody);
 
 		}
 		private void CopyFilesRecursively(string sourcePath, string targetPath)

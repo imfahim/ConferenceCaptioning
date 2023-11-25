@@ -60,6 +60,13 @@ namespace Web.Api.Controllers
 			}
 		}
 
+		[HttpGet("send-analytics")]
+		[ProducesResponseType(typeof(ResponseModel), (int)HttpStatusCode.OK)]
+		public async Task SendAnalytics()
+		{
+			await _streamService.SendAnalytics();
+		}
+
 		//[HttpGet]
 		//[ProducesResponseType(typeof(ResponseModel), (int)HttpStatusCode.OK)]
 		//public async Task<IActionResult> GetAllCreatedStream()
